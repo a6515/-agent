@@ -35,7 +35,7 @@ sys.path.insert(0, str(_project_root))
 
 import uvicorn
 from config.settings import settings
-from src.utils.logger import get_logger
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -43,9 +43,9 @@ logger = get_logger(__name__)
 def _run_build_kb():
     """重建知识库（供 --build-kb 参数调用）。"""
     import time
-    from src.ingestion.doc_loader import load_gongwen_documents
-    from src.ingestion.text_splitter import split_gongwen_documents
-    from src.ingestion.embed_store import build_vector_store
+    from src.domain.ingestion.doc_loader import load_gongwen_documents
+    from src.domain.ingestion.text_splitter import split_gongwen_documents
+    from src.domain.ingestion.embed_store import build_vector_store
 
     logger.info("=" * 60)
     logger.info("  知识库重建工具")
@@ -107,7 +107,7 @@ def main():
 
     if is_frozen:
         # PyInstaller 打包后：直接传 app 对象（避免 importlib 解析问题）
-        from src.api.server import app
+        from src.api.app import app
         uvicorn.run(
             app,
             host=settings.API_HOST,
@@ -117,7 +117,7 @@ def main():
         )
     else:
         uvicorn.run(
-            "src.api.server:app",
+            "src.api.app:app",
             host=settings.API_HOST,
             port=settings.API_PORT,
             reload=reload,

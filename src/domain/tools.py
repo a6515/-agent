@@ -16,8 +16,8 @@ from typing import List, Optional, Dict, Any
 
 from langchain_core.messages import HumanMessage
 
-from src.agent.retriever import GongwenRetriever
-from src.utils.logger import get_logger
+from src.domain.retriever import GongwenRetriever
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

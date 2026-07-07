@@ -1,7 +1,7 @@
 # 致远 OA 智能公文 AI Agent — 项目总览
 
-> 版本：1.0.0
-> 更新日期：2026-06-18
+> 版本：2.0.0（分层架构重构）
+> 更新日期：2026-07-07
 
 ---
 
@@ -14,6 +14,9 @@
 - 🔍 **多轮自查**：Agent 深度模式下，AI 会自动检索范文 → 撰写初稿 → 逐项审查格式 → 修复问题 → 输出终稿
 - 📄 **格式渲染**：生成的纯文本按 GB/T 9704-2012 标准渲染为 `.docx` 文件（标题小标宋、正文仿宋、28 磅行距）
 - 🔗 **OA 对接**：生成结果可推送到致远 OA 表单，直接发起审批流程
+
+> **v2.0 架构说明**：AI 后端已重构为 **Controller → Service → Repository 分层架构 + 依赖注入（Depends）**，
+> 拥有统一的启动中心 `src/api/app.py`。对熟悉 Spring MVC 的同学，可直接按下方「架构分层」表对照理解。
 
 ---
 
@@ -35,72 +38,138 @@
 
 **路径：** `D:\python-projects\oa-agent`
 
+#### 架构分层（≈ Spring MVC / Spring Boot）
+
+后端采用经典分层架构，每一层职责单一、依赖向下。对照 Spring 概念如下：
+
+| 分层 | 职责 | 目录 / 文件 | Spring 对应 |
+|---|---|---|---|
+| **启动中心** | 应用组装 + 生命周期 | `src/api/app.py` 的 `create_app()` | `@SpringBootApplication` + `ApplicationContext` |
+| **DI 装配** | 依赖注入（谁依赖谁） | `src/api/deps.py` | `@Configuration` / `@Autowired` |
+| **Controller** | HTTP 编解码，只调 service | `src/api/routes/` | `@RestController` |
+| **横切关注点** | CORS / 请求追踪 / 限流 | `src/api/middleware.py` | `Interceptor` / AOP |
+| **Service** | 业务编排 | `src/services/` | `@Service` |
+| **Repository** | 外部资源访问 | `src/repositories/` | `@Repository` / Mapper |
+| **Domain（领域）** | RAG 管道 + Agent 状态机 | `src/domain/`（含 `ingestion/`） | 领域模型 / 核心逻辑 |
+| **DTO** | 请求/响应数据封装 | `src/api/schemas.py` | Entity / DTO / VO |
+| **配置** | 集中配置 | `config/settings.py` | `application.yml` + `@ConfigurationProperties` |
+| **基础设施** | 日志 / docx 渲染 / 公共辅助 | `src/infra/` | 公共组件 |
+
+> **与 Spring 的关键差异**：Python 没有「组件自动扫描」。新增一个 service 必须在 `deps.py` 里**显式登记**——
+> 代价是多写几行，好处是整个依赖图摊在一个文件里，没有「这个 bean 从哪冒出来」的玄学。
+
 #### 目录结构
 
 ```
 oa-agent/
-├── config/                 # 配置文件
-│   ├── settings.py         # 全局配置（pydantic-settings，40+ 项）
-│   └── prompts/            # LLM 提示词（YAML，运行时热更新）
+├── config/
+│   ├── settings.py              # 全局配置（pydantic-settings，≈ application.yml）
+│   └── prompts/                 # LLM 提示词（YAML，运行时热更新）
 │       ├── rag_system.yaml
 │       └── agent_system.yaml
 ├── src/
-│   ├── agent/              # Agent 核心
-│   │   ├── rag_chain.py    # RAG 管道（LangChain LCEL）
-│   │   ├── retriever.py    # 向量检索器（Chroma 封装）
-│   │   ├── graph/          # LangGraph 深度模式引擎（StateGraph + SQLite 持久化）
-│   │   ├── agent_shared.py # 深度模式复用的纯逻辑（tool_call 解析、token 统计等）
-│   │   ├── agent_prompt.py # Agent 系统提示词加载
-│   │   ├── prompts.py      # RAG 系统提示词加载
-│   │   └── tools.py        # 5 个工具函数 + function calling schema
-│   ├── api/                # FastAPI 服务层
-│   │   ├── server.py       # 9 个端点 + 中间件（CORS、追踪、限流）
-│   │   ├── schemas.py      # Pydantic v2 数据模型
-│   │   └── oa_client.py    # 致远 OA API 客户端（骨架）
-│   ├── ingestion/          # 知识库构建
-│   │   ├── doc_loader.py   # .docx 文档解析器
-│   │   ├── text_splitter.py # 结构感知分块器
-│   │   └── embed_store.py  # Embedding + Chroma 管理
-│   └── utils/
-│       ├── helpers.py      # 日期上下文、标题提取等
-│       ├── docx_writer.py  # GB/T 9704-2012 标准 docx 渲染
-│       └── logger.py       # 统一日志（彩色、request_id 追踪）
-├── scripts/                # 入口脚本
-│   ├── run_api.py          # 启动 FastAPI 服务
-│   └── build_knowledge_base.py # 构建 Chroma 向量库
-├── tests/                  # pytest 单元测试（4 个测试文件）
-├── deploy/                 # 部署配置
-│   ├── oa-agent.service    # Linux systemd 服务
-│   └── setup-task.ps1      # Windows 计划任务
-├── nginx/                  # Nginx 反向代理配置
-├── Dockerfile              # 多阶段构建（前端 + Python）
-├── Dockerfile.nginx        # Nginx 容器
-├── docker-compose.yml      # 双容器编排
-└── requirements.txt        # Python 依赖（19 个包）
+│   ├── api/                     # ★ Controller 层（HTTP）
+│   │   ├── app.py               # ★★ 启动中心 create_app() + lifespan（≈ @SpringBootApplication）
+│   │   ├── deps.py              # 依赖装配 Depends providers（≈ @Configuration）
+│   │   ├── middleware.py        # CORS / 请求追踪 / 限流（≈ Interceptor）
+│   │   ├── routes/              # HTTP 路由（≈ @RestController）
+│   │   │   ├── system.py        #   /health  /stats  /download
+│   │   │   ├── generate.py      #   /generate  /generate/stream
+│   │   │   ├── agent.py         #   /generate/agent/stream  /answer
+│   │   │   └── oa.py            #   /oa/forward
+│   │   └── schemas.py           # 请求/响应 DTO（Pydantic v2）
+│   ├── services/                # ★ Service 层（业务编排，≈ @Service）
+│   │   ├── generation_service.py  # 快速模式：识别文种→检索→生成→落盘
+│   │   ├── agent_service.py       # 深度模式：LangGraph 事件流 + docx 落盘
+│   │   ├── oa_service.py          # OA 推送 + 异常映射
+│   │   └── stats_service.py       # token 用量统计
+│   ├── repositories/            # ★ Repository 层（外部资源，≈ @Repository/DAO）
+│   │   ├── document_repository.py # .docx 落盘 / 下载路径解析（含防穿越）
+│   │   └── oa_client.py           # 致远 OA HTTP 客户端（骨架）
+│   ├── domain/                 # 领域层：RAG + Agent 核心（原 src/agent/）
+│   │   ├── rag_chain.py         #   RAG 管道（LangChain LCEL）+ 文种识别
+│   │   ├── retriever.py         #   向量检索器（Chroma 封装）
+│   │   ├── graph/              #   LangGraph 深度模式引擎（StateGraph + SQLite 持久化）
+│   │   ├── tools.py            #   5 个工具 + function calling schema
+│   │   ├── agent_shared.py     #   token 统计 / tool_call 解析等纯逻辑
+│   │   ├── agent_prompt.py     #   Agent 系统提示词加载
+│   │   ├── prompts.py          #   RAG 系统提示词加载
+│   │   └── ingestion/          #   知识库构建（离线管道，原 src/ingestion/）
+│   │       ├── doc_loader.py    #     .docx 解析 + 结构分类
+│   │       ├── text_splitter.py #     结构感知分块
+│   │       └── embed_store.py   #     Embedding + Chroma 管理
+│   └── infra/                  # 基础设施（原 src/utils/，≈ 公共组件）
+│       ├── docx_writer.py       #   GB/T 9704-2012 标准 docx 渲染
+│       ├── helpers.py           #   日期上下文、标题提取等
+│       └── logger.py            #   统一日志（request_id 链路追踪）
+├── scripts/                     # 入口脚本
+│   ├── run_api.py              #   main()：启动 FastAPI（uvicorn src.api.app:app）
+│   ├── build_knowledge_base.py #   构建 Chroma 向量库
+│   ├── download_model.py       #   预下载本地 Embedding 模型
+│   └── generate_samples.py     #   生成样例范文
+├── tests/                       # pytest 单元测试（64 用例）
+├── deploy/                      # 部署配置
+│   ├── Dockerfile              #   后端 Python 镜像
+│   ├── Dockerfile.nginx        #   前端 Nginx 镜像（多阶段）
+│   ├── docker-compose.yml      #   双容器编排
+│   ├── nginx.conf              #   Nginx 前端托管 + API 反代
+│   ├── build.ps1               #   Windows 本地构建脚本
+│   ├── .env.example            #   环境变量模板
+│   └── 部署说明.md
+├── frontend/                    # Vue 3 前端（独立 SPA）
+└── requirements.txt             # Python 依赖
+```
+
+#### 启动中心与请求流转
+
+**启动中心**（相当于 Spring Boot 的启动类）：
+
+```
+scripts/run_api.py            ── uvicorn.run("src.api.app:app")        # ≈ public static void main
+      └─ src/api/app.py :: create_app()                                # ≈ @SpringBootApplication
+            ├─ register_middleware(app)      # CORS / request-id / 限流
+            ├─ include_router × 4            # 挂载 Controller
+            └─ lifespan
+                 ├─ 启动段：预热 RAG 链 + 编译 Agent 图   # ≈ ApplicationRunner / @PostConstruct
+                 └─ 关闭段：释放 OA 客户端连接            # ≈ @PreDestroy
+```
+
+**一次请求的流转**：
+
+```
+HTTP 请求
+  → middleware（CORS / X-Request-ID / 限流）
+  → api/routes/*.py        Controller：解析请求、返回响应（不含业务逻辑）
+  → services/*.py          Service：编排「识别文种 → 检索 → 生成 → 落盘」
+  → domain/                Domain：RAG 链（LCEL）/ LangGraph 状态机 / 知识库构建
+  → repositories/*.py      Repository：docx 落盘 / OA 推送 / 向量检索
+依赖装配：deps.py 用 @lru_cache 提供单例，Controller 通过 Depends(get_xxx_service) 获取
 ```
 
 #### 核心 API
 
-| 端点 | 方法 | 说明 |
-|---|---|---|
-| `/health` | GET | 健康检查（可选 LLM 探活） |
-| `/stats` | GET | Token 用量统计 |
-| `/generate` | POST | 快速模式 — 同步生成公文 |
-| `/generate/stream` | POST | 快速模式 — SSE 流式生成 |
-| `/generate/agent/stream` | POST | 深度模式 — Agent 多轮推理（SSE） |
-| `/generate/agent/answer` | POST | 注入用户回答（Ask-User 恢复） |
-| `/oa/forward` | POST | 推送公文到致远 OA |
-| `/download/{filename}` | GET | 下载生成的 .docx 文件 |
-| `/docs` | GET | Swagger API 文档 |
-| `/redoc` | GET | ReDoc API 文档 |
+| 端点 | 方法 | 路由文件 | 说明 |
+|---|---|---|---|
+| `/health` | GET | routes/system.py | 健康检查（可选 LLM 探活） |
+| `/stats` | GET | routes/system.py | Token 用量统计 |
+| `/download/{filename}` | GET | routes/system.py | 下载生成的 .docx 文件 |
+| `/generate` | POST | routes/generate.py | 快速模式 — 同步生成公文 |
+| `/generate/stream` | POST | routes/generate.py | 快速模式 — SSE 流式生成 |
+| `/generate/agent/stream` | POST | routes/agent.py | 深度模式 — Agent 多轮推理（SSE） |
+| `/generate/agent/answer` | POST | routes/agent.py | 注入用户回答（Ask-User 恢复） |
+| `/oa/forward` | POST | routes/oa.py | 推送公文到致远 OA |
+| `/docs` · `/redoc` | GET | （FastAPI 内置） | Swagger / ReDoc API 文档 |
 
 #### 技术要点
 
+- **架构**：Controller → Service → Repository 分层，`Depends` 依赖注入，`create_app()` 统一装配，`lifespan` 管理生命周期
 - **LLM**：DeepSeek Chat（通过 OpenAI 兼容接口调用，可切换任何兼容模型）
 - **Embedding**：BAAI/bge-small-zh-v1.5（本地模型，~100MB，离线运行）
 - **向量库**：Chroma（SQLite 持久化，存储于 `data/vector_db/`）
 - **检索**：余弦相似度，支持 MMR 和阈值过滤
 - **Agent 5 工具**：`search_exemplars` → `check_format` → `refine_draft` → `ask_user` → `finish`
+- **深度模式引擎**：LangGraph StateGraph + AsyncSqliteSaver（`interrupt` 中断 + checkpoint 持久化）
+- **工程化**：pydantic-settings 配置校验、X-Request-ID 链路追踪、滑动窗口限流、token 用量统计、LLM 调用重试
 
 #### 支持的公文文种
 
@@ -131,21 +200,10 @@ frontend/
 │   ├── views/
 │   │   └── AiGenerator.vue  # 主页面（核心编排组件）
 │   └── components/
-│       ├── layout/
-│       │   ├── TopHeader.vue
-│       │   └── FooterBar.vue
-│       ├── chat/
-│       │   ├── ChatPanel.vue
-│       │   ├── ChatMessageList.vue
-│       │   ├── ChatInput.vue
-│       │   ├── ModeTabs.vue       # 快速模式 / 深度模式切换
-│       │   └── QuickTemplates.vue
-│       ├── draft/
-│       │   ├── DraftPanel.vue
-│       │   └── DraftPlaceholder.vue
-│       └── agent/
-│           ├── AgentProgressBar.vue  # 6 阶段进度条
-│           └── AgentActivityCard.vue # 实时活动卡片
+│       ├── layout/          # TopHeader / FooterBar
+│       ├── chat/            # ChatPanel / ChatMessageList / ChatInput / ModeTabs / QuickTemplates
+│       ├── draft/           # DraftPanel / DraftPlaceholder
+│       └── agent/           # AgentProgressBar / AgentActivityCard / AgentAskModal
 ├── .env.development         # VUE_APP_API_BASE=http://localhost:8000
 ├── .env.production          # VUE_APP_API_BASE=（空，同源部署）
 └── vue.config.js            # Vue CLI 配置（端口 8081）
@@ -162,7 +220,7 @@ frontend/
 #### 部署模式
 
 - **开发模式**：`npm run serve`（端口 8081），API 代理到 `localhost:8000`
-- **生产模式**：`npm run build` → 静态文件放到 `frontend/dist/`，由 Nginx / OpenResty 托管
+- **生产模式**：`npm run build` → 静态文件由 Nginx / OpenResty 托管
 
 ---
 
@@ -253,9 +311,10 @@ E:\Seeyon\A8\
 │  ┌──────────────┐                                              │
 │  │ AI 前端       │──── HTTP/SSE ────▶ ┌──────────────────┐     │
 │  │ (Vue 3 SPA)  │                    │ AI 后端            │     │
-│  │ 智能创作弹窗  │◀─── docx下载 ──── │ (FastAPI +        │     │
-│  └──────────────┘                    │  LangChain +       │     │
-│                                      │  Chroma)           │     │
+│  │ 智能创作弹窗  │◀─── docx下载 ──── │ Controller       │     │
+│  └──────────────┘                    │   → Service      │     │
+│                                      │   → Repository   │     │
+│                                      │   → RAG/Agent    │     │
 │                                      └───────┬────────────┘     │
 │                                              │                   │
 │                                      ┌───────▼────────────┐     │
@@ -293,7 +352,7 @@ E:\Seeyon\A8\
 
 | 工具 | 版本要求 |
 |---|---|
-| Python | 3.11+ |
+| Python | 3.11+（推荐 3.13） |
 | Node.js | 18+ |
 | Java | JDK 1.8（仅 OA 插件开发） |
 | IntelliJ IDEA | 2024+（仅 OA 插件开发） |

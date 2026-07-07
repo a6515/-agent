@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 from langchain_core.messages import AIMessage
 
-from src.agent.tools import CHECK_FORMAT_PROMPT, check_format
+from src.domain.tools import CHECK_FORMAT_PROMPT, check_format
 
 
 class TestCheckFormatPromptInjection:

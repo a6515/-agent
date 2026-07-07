@@ -19,7 +19,7 @@ import re
 import threading
 from typing import Dict, Any, List
 
-from src.utils.logger import get_logger
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

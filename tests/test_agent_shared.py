@@ -10,7 +10,7 @@ import json
 import pytest
 from unittest.mock import MagicMock
 
-from src.agent.agent_shared import (
+from src.domain.agent_shared import (
     _extract_tool_calls,
     _tool_result_to_text,
     _RE_MODIFY_KEYWORDS,

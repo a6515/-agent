@@ -7,15 +7,15 @@
   - LCEL RAG 链（检索 + 格式化 + 生成）
 
 公共接口：
-    from src.agent import (
+    from src.domain import (
         build_rag_chain,    # 构建 RAG 链
         get_retriever,      # 获取检索器
         GONGWEN_PROMPT,     # System Prompt 模板
     )
 """
 
-from src.agent.rag_chain import build_rag_chain, get_retriever
-from src.agent.prompts import SYSTEM_PROMPT
+from src.domain.rag_chain import build_rag_chain, get_retriever
+from src.domain.prompts import SYSTEM_PROMPT
 
 __all__ = [
     "build_rag_chain",

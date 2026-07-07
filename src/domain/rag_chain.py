@@ -47,10 +47,10 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 
 from config.settings import settings
-from src.agent.prompts import SYSTEM_PROMPT
-from src.agent.retriever import GongwenRetriever, get_retriever
-from src.utils.helpers import build_date_hint, enhance_query_with_doc_type
-from src.utils.logger import get_logger
+from src.domain.prompts import SYSTEM_PROMPT
+from src.domain.retriever import GongwenRetriever, get_retriever
+from src.infra.helpers import build_date_hint, enhance_query_with_doc_type
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

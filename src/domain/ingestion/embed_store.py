@@ -26,7 +26,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_chroma import Chroma
 
 from config.settings import settings
-from src.utils.logger import get_logger
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -20,8 +20,8 @@ from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStoreRetriever
 
 from config.settings import settings
-from src.ingestion.embed_store import VectorStoreManager
-from src.utils.logger import get_logger
+from src.domain.ingestion.embed_store import VectorStoreManager
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

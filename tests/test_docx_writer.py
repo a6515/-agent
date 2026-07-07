@@ -6,7 +6,7 @@
 """
 
 import pytest
-from src.utils.docx_writer import _classify_line
+from src.infra.docx_writer import _classify_line
 
 
 class TestClassifyLine:

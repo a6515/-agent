@@ -27,7 +27,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml.ns import qn, nsdecls
 from docx.oxml import parse_xml
 
-from src.utils.logger import get_logger
+from src.infra.logger import get_logger
 from config.settings import settings
 
 # 输出目录 — 统一用 settings，保证与 server.py 下载路径一致

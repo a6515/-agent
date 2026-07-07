@@ -6,7 +6,7 @@
 """
 
 import pytest
-from src.agent.rag_chain import detect_doc_type
+from src.domain.rag_chain import detect_doc_type
 
 
 class TestDetectDocType:
@@ -72,7 +72,7 @@ class TestCleanOutput:
     ])
     def test_clean_output(self, input_text, expected_contains):
         """验证 AI 套话被正确清理。"""
-        from src.agent.rag_chain import GongwenRAGChain
+        from src.domain.rag_chain import GongwenRAGChain
         result = GongwenRAGChain._clean_output(input_text)
         assert expected_contains in result
         # 不应包含明显 AI 套话

@@ -25,10 +25,10 @@ from langgraph.config import get_stream_writer
 from langgraph.types import interrupt
 
 from config.settings import settings
-from src.agent.agent_prompt import AGENT_SYSTEM_PROMPT
-from src.agent.tools import execute_tool, AGENT_TOOLS
-from src.agent.rag_chain import detect_doc_type
-from src.agent.agent_shared import (
+from src.domain.agent_prompt import AGENT_SYSTEM_PROMPT
+from src.domain.tools import execute_tool, AGENT_TOOLS
+from src.domain.rag_chain import detect_doc_type
+from src.domain.agent_shared import (
     _extract_tool_calls,
     _tool_result_to_text,
     _extract_token_usage,
@@ -36,9 +36,9 @@ from src.agent.agent_shared import (
     _RE_MODIFY_KEYWORDS,
     build_tool_end,
 )
-from src.utils.helpers import build_date_context
-from src.utils.logger import get_logger
-from src.agent.graph.state import GongwenGraphState
+from src.infra.helpers import build_date_context
+from src.infra.logger import get_logger
+from src.domain.graph.state import GongwenGraphState
 
 logger = get_logger(__name__)
 

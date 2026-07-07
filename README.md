@@ -10,7 +10,7 @@
 - **本地 RAG**：LangChain LCEL + Chroma 向量库 + BAAI/bge-small-zh-v1.5 本地 Embedding（免费、离线）。
 - **结构感知分块**：识别公文的标题/主送/正文/落款结构，在语义边界处切分。
 - **格式化导出**：生成符合 GB/T 9704-2012 的 `.docx`（字体、字号、页边距、行距、落款右对齐）。
-- **致远 OA 对接**：`/oa/forward` 推送公文到 OA 公文表单（`src/api/oa_client.py` 为骨架，需按实际 OA 版本补全接口）。
+- **致远 OA 对接**：`/oa/forward` 推送公文到 OA 公文表单（`src/repositories/oa_client.py` 为骨架，需按实际 OA 版本补全接口）。
 - **工程化**：pydantic-settings 配置校验、请求追踪（X-Request-ID）、滑动窗口限流、token 用量统计、LLM 调用重试。
 
 ## 技术栈
@@ -28,12 +28,13 @@
 
 ```
 config/          全局配置（settings.py）与 Prompt 模板
-src/
-  agent/         RAG 链、Agent 执行器、工具集、检索器、Prompt
-  api/           FastAPI 服务、OA 客户端、Pydantic schemas
-  ingestion/     文档加载、结构感知分块、向量化入库
-  utils/         docx 生成、日志、公共辅助
-scripts/         启动入口、知识库构建、模型下载、样例生成
+src/                分层架构：Controller → Service → Repository → Domain
+  api/           Controller 层：启动中心(app.py)、路由(routes/)、依赖装配(deps.py)、中间件、schemas
+  services/      Service 层：生成 / Agent / OA / 统计 业务编排
+  repositories/  Repository 层：docx 落盘、致远 OA 客户端
+  domain/        领域层：RAG 链、Agent 图(graph/)、工具、检索器、知识库构建(ingestion/)
+  infra/         基础设施：docx 生成、日志、公共辅助
+scripts/         启动入口(run_api.py)、知识库构建、模型下载、样例生成
 frontend/        Vue 前端
 deploy/          Dockerfile、docker-compose、nginx 配置
 tests/           pytest 单元测试

@@ -21,8 +21,8 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from config.settings import settings
-from src.agent.graph.state import GongwenGraphState
-from src.agent.graph.nodes import (
+from src.domain.graph.state import GongwenGraphState
+from src.domain.graph.nodes import (
     prepare_node,
     agent_node,
     tools_node,
@@ -32,7 +32,7 @@ from src.agent.graph.nodes import (
     route_after_agent,
     route_after_tools,
 )
-from src.utils.logger import get_logger
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

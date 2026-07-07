@@ -30,7 +30,7 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 from langchain_core.documents import Document
 
-from src.utils.logger import get_logger
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

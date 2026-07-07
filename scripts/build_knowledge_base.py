@@ -27,10 +27,10 @@ _project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_project_root))
 
 from config.settings import settings
-from src.ingestion.doc_loader import load_gongwen_documents
-from src.ingestion.text_splitter import split_gongwen_documents
-from src.ingestion.embed_store import build_vector_store
-from src.utils.logger import get_logger
+from src.domain.ingestion.doc_loader import load_gongwen_documents
+from src.domain.ingestion.text_splitter import split_gongwen_documents
+from src.domain.ingestion.embed_store import build_vector_store
+from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
 
