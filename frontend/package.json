@@ -1,0 +1,30 @@
+{
+  "name": "ai-doc-generator",
+  "version": "2.0.0",
+  "private": true,
+  "description": "致远 OA 智能公文 AI 创作 — Vue 3 独立前端应用",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "ant-design-vue": "^3.2.20",
+    "core-js": "^3.6.5",
+    "pinia": "^2.0.36",
+    "vue": "^3.2.47"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "@vue/compiler-sfc": "^3.2.47",
+    "sass": "~1.63.0",
+    "sass-loader": "^12.6.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

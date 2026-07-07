@@ -1,0 +1,44 @@
+# ---- 依赖 ----
+node_modules/
+
+# ---- 数据（体积大且含敏感信息）----
+data/
+
+# ---- 构建产物 ----
+dist/
+
+# ---- 后端环境配置（含 API Key，绝不提交到仓库）----
+# 用 / 前缀锚定仓库根目录，避免误伤 frontend/.env.* 等前端构建配置
+/.env
+/.env.*
+!/.env.example
+# deploy/.env 是生产部署时由 .env.example 复制生成、含真实 key，也必须忽略
+/deploy/.env
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# ---- 测试 & 缓存 ----
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---- Docker ----
+*.tar
+*.zip
+!deploy/*.zip
+
+# ---- OS ----
+.DS_Store
+Thumbs.db

@@ -1,0 +1,45 @@
+# ============================================================
+# 致远 OA 智能公文 AI Agent — 前端 + Nginx 镜像
+# ============================================================
+# 构建方式：
+#   docker build -t oa-agent-nginx:latest -f deploy/Dockerfile.nginx .
+# 或：
+#   cd deploy && docker compose build
+# ============================================================
+
+# ---- Stage 1：构建 Vue 前端 ----
+FROM node:18-alpine AS frontend-build
+
+WORKDIR /app/frontend
+
+# 安装依赖（独立层，利用缓存）
+COPY frontend/package*.json ./
+RUN npm ci --registry=https://registry.npmmirror.com
+
+# 复制源码并构建
+COPY frontend/ ./
+RUN npm run build
+
+# ---- Stage 2：Nginx 运行 ----
+FROM nginx:alpine
+
+LABEL maintainer="oa-agent"
+LABEL description="致远 OA 智能公文 AI Agent - Nginx 前端 + 反向代理"
+LABEL version="1.0.0"
+
+# 删除默认配置
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# 复制 Nginx 配置
+COPY deploy/nginx.conf /etc/nginx/conf.d/oa-agent.conf
+
+# 复制前端构建产物
+COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget -q -O /dev/null http://localhost:80/ || exit 1
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

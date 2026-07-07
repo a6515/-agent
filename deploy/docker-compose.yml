@@ -1,0 +1,87 @@
+# ============================================================
+# 致远 OA 智能公文 AI Agent — Docker Compose 编排
+# ============================================================
+# 使用方式：
+#   1. 复制 .env.example 为 .env 并填写配置
+#   2. docker compose build      # 构建镜像
+#   3. docker compose up -d      # 启动服务
+#   4. docker compose logs -f    # 查看日志
+# ============================================================
+services:
+  # ========================
+  # 后端 API 服务
+  # ========================
+  oa-backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: oa-agent:latest
+    container_name: oa-backend
+    restart: unless-stopped
+
+    # 环境变量（通过 .env 文件注入）
+    env_file:
+      - .env
+
+    # 数据卷挂载
+    volumes:
+      # 向量数据库（需持久化）
+      - vector_db_data:/app/data/vector_db
+      # 范文文档（可选：如需在容器内管理原始范文）
+      - raw_docs_data:/app/data/raw_docs
+      # 生成的公文输出
+      - output_data:/app/data/output
+
+    networks:
+      - oa-network
+
+    # 仅内网访问（不暴露到宿主机）
+    # 如需直接访问后端或使用外部反向代理，取消下行注释：
+    # ports:
+    #   - "127.0.0.1:8000:8000"
+
+    # 资源限制（可选）
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2G
+    #     reservations:
+    #       memory: 512M
+
+  # ========================
+  # 前端 Nginx 服务
+  # ========================
+  oa-nginx:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.nginx
+    image: oa-agent-nginx:latest
+    container_name: oa-nginx
+    restart: unless-stopped
+
+    ports:
+      - "8081:80"
+
+    depends_on:
+      - oa-backend
+
+    networks:
+      - oa-network
+
+# ========================
+# 持久化数据卷
+# ========================
+volumes:
+  vector_db_data:
+    driver: local
+  raw_docs_data:
+    driver: local
+  output_data:
+    driver: local
+
+# ========================
+# 内部网络
+# ========================
+networks:
+  oa-network:
+    driver: bridge
